@@ -91,30 +91,25 @@ export async function generateStoryAndImages(
     const generatedImagesResponses = [];
 
     // Generate Cover Image
-    const coverImageResponse = await callProxy('models/imagen-4.0-generate-001:generateImages', {
-        prompt: `Book cover illustration for a children's book titled '${storyData.title}'. Featuring the main character: ${storyData.character_description}. Style: ${artStyle}.`,
-        config: {
-            numberOfImages: 1,
-            aspectRatio: '4:3'
-        }
+    const coverPrompt = `Book cover illustration for a children's book titled '${storyData.title}'. Featuring the main character: ${storyData.character_description}. Style: ${artStyle}.`;
+    const coverImageResponse = await callProxy('models/imagen-4.0-generate-001:predict', {
+        instances: [{ prompt: coverPrompt }],
+        parameters: { sampleCount: 1, aspectRatio: '4:3' }
     });
     generatedImagesResponses.push(coverImageResponse);
 
     // Generate Page Images sequentially
     for (const page of storyData.pages) {
         const prompt = `${page.image_prompt}, in the style of ${artStyle}. ${storyData.character_description}`;
-        const pageImageResponse = await callProxy('models/imagen-4.0-generate-001:generateImages', {
-            prompt,
-            config: {
-                numberOfImages: 1,
-                aspectRatio: '4:3'
-            }
+        const pageImageResponse = await callProxy('models/imagen-4.0-generate-001:predict', {
+            instances: [{ prompt }],
+            parameters: { sampleCount: 1, aspectRatio: '4:3' }
         });
         generatedImagesResponses.push(pageImageResponse);
     }
 
-    const coverImageUrl = `data:image/png;base64,${generatedImagesResponses[0].generatedImages[0].image.imageBytes}`;
-    const pageImageUrls = generatedImagesResponses.slice(1).map(res => `data:image/png;base64,${res.generatedImages[0].image.imageBytes}`);
+    const coverImageUrl = `data:image/png;base64,${generatedImagesResponses[0].predictions[0].bytesBase64Encoded}`;
+    const pageImageUrls = generatedImagesResponses.slice(1).map(res => `data:image/png;base64,${res.predictions[0].bytesBase64Encoded}`);
 
     const finalStory: Story = {
         title: storyData.title,
@@ -178,15 +173,15 @@ export async function regeneratePage(
     const newText = regenData.new_text;
     const newImagePrompt = `${regenData.new_image_prompt}, in the style of ${artStyle}. ${characterDescription}`;
     
-    const imageResponse = await callProxy('models/imagen-4.0-generate-001:generateImages', {
-        prompt: newImagePrompt,
-        config: {
-            numberOfImages: 1,
+    const imageResponse = await callProxy('models/imagen-4.0-generate-001:predict', {
+        instances: [{ prompt: newImagePrompt }],
+        parameters: {
+            sampleCount: 1,
             aspectRatio: '4:3'
         }
     });
 
-    const newImageUrl = `data:image/png;base64,${imageResponse.generatedImages[0].image.imageBytes}`;
+    const newImageUrl = `data:image/png;base64,${imageResponse.predictions[0].bytesBase64Encoded}`;
 
     return { newText, newImageUrl };
 }
