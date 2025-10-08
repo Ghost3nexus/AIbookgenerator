@@ -12,9 +12,30 @@ export default async function handler(request: Request) {
   if (request.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    // This catches errors like empty body, or non-JSON body.
+    return new Response(
+      JSON.stringify({ error: { message: 'Invalid or empty JSON body provided.' } }),
+      { 
+        status: 400, 
+        headers: { 'Content-Type': 'application/json' } 
+      }
+    );
+  }
   
   try {
-    const { endpoint, payload } = await request.json();
+    const { endpoint, payload } = body;
+
+    if (!endpoint || !payload) {
+        return new Response(
+            JSON.stringify({ error: { message: 'Request body is missing "endpoint" or "payload".' } }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+    }
 
     if (!process.env.API_KEY) {
       return new Response(JSON.stringify({ error: { message: 'API key is not configured on the server.' } }), {
