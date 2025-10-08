@@ -132,7 +132,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen text-gray-700">
+    <div className="min-h-screen text-slate-700">
       <Header />
       <main className="container mx-auto px-4 py-8">
         {renderContent()}

@@ -23,13 +23,13 @@ const LoadingAnimation: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center text-center py-20">
       <div className="relative w-48 h-48">
-        <BookOpenIcon className="w-full h-full text-yellow-400 drop-shadow-lg" />
+        <BookOpenIcon className="w-full h-full text-indigo-400 drop-shadow-lg" />
         <SparklesIcon className="absolute top-0 -right-2 w-12 h-12 text-rose-400 animate-ping" />
-        <SparklesIcon className="absolute -bottom-4 -left-2 w-8 h-8 text-sky-400 animate-ping animation-delay-500" />
-        <SparklesIcon className="absolute bottom-10 right-2 w-6 h-6 text-yellow-300 animate-pulse animation-delay-1000" />
+        <SparklesIcon className="absolute -bottom-4 -left-2 w-8 h-8 text-purple-400 animate-ping animation-delay-500" />
+        <SparklesIcon className="absolute bottom-10 right-2 w-6 h-6 text-indigo-300 animate-pulse animation-delay-1000" />
       </div>
-      <h2 className="text-4xl font-display text-yellow-600 mt-12">絵本を生成中...</h2>
-      <p className="text-gray-600 mt-4 text-lg transition-opacity duration-500">{messages[messageIndex]}</p>
+      <h2 className="text-4xl font-display text-indigo-600 mt-12">絵本を生成中...</h2>
+      <p className="text-slate-600 mt-4 text-lg transition-opacity duration-500">{messages[messageIndex]}</p>
     </div>
   );
 };

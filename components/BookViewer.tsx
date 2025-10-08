@@ -115,12 +115,12 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                         {currentPage && (
                             <div className="w-full h-full flex flex-col md:flex-row pdf-page" data-page-num={currentPageIndex + 1}>
                                 <img src={currentPage.imageUrl} alt={`Page ${currentPage.id}`} className="w-full md:w-1/2 h-1/2 md:h-full object-cover"/>
-                                <div className="w-full md:w-1/2 p-6 flex items-center justify-center bg-rose-50">
+                                <div className="w-full md:w-1/2 p-6 flex items-center justify-center bg-indigo-50">
                                     {isEditingText ? (
                                         <textarea
                                             value={editText}
                                             onChange={(e) => setEditText(e.target.value)}
-                                            className="w-full h-full text-2xl leading-loose resize-none border-4 border-yellow-300 rounded-lg p-4 bg-white/80 focus:ring-2 focus:ring-yellow-400"
+                                            className="w-full h-full text-2xl leading-loose resize-none border-4 border-indigo-300 rounded-lg p-4 bg-white/80 focus:ring-2 focus:ring-indigo-400"
                                         />
                                     ) : (
                                         <p className="text-2xl leading-loose whitespace-pre-wrap p-4">{currentPage.text}</p>
@@ -131,16 +131,16 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                         {isAfterword && <PageContent isPdfPage={true} title="あとがき" text={story.afterword} imageUrl={story.coverImageUrl} isAfterword={true}/>}
                     </div>
                      <div className="flex justify-between items-center mt-4 w-full px-2">
-                        <button onClick={handlePrevPage} disabled={isCover} className="p-4 rounded-full bg-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-yellow-100 transition-all transform hover:scale-110"><ArrowLeftIcon className="w-8 h-8 text-yellow-600"/></button>
-                        <span className="text-gray-700 font-bold text-lg">{isCover ? '表紙' : isAfterword ? 'あとがき' : `ページ ${currentPageIndex + 1} / ${story.pages.length}`}</span>
-                        <button onClick={handleNextPage} disabled={isAfterword} className="p-4 rounded-full bg-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-yellow-100 transition-all transform hover:scale-110"><ArrowRightIcon className="w-8 h-8 text-yellow-600"/></button>
+                        <button onClick={handlePrevPage} disabled={isCover} className="p-4 rounded-full bg-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-100 transition-all transform hover:scale-110"><ArrowLeftIcon className="w-8 h-8 text-indigo-600"/></button>
+                        <span className="text-slate-700 font-bold text-lg">{isCover ? '表紙' : isAfterword ? 'あとがき' : `ページ ${currentPageIndex + 1} / ${story.pages.length}`}</span>
+                        <button onClick={handleNextPage} disabled={isAfterword} className="p-4 rounded-full bg-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-100 transition-all transform hover:scale-110"><ArrowRightIcon className="w-8 h-8 text-indigo-600"/></button>
                     </div>
                 </div>
 
                 {/* Controls */}
                 <div className="w-full lg:w-2/5 xl:w-1/3 space-y-4">
                     <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-2xl border-4 border-white/50">
-                        <h3 className="text-3xl font-display mb-6 text-center text-yellow-600">魔法の仕上げ 🪄</h3>
+                        <h3 className="text-3xl font-display mb-6 text-center text-indigo-600">魔法の仕上げ 🪄</h3>
                         <div className="grid grid-cols-3 gap-4 justify-items-center">
                             <ControlButton icon={isSpeaking ? <StopIcon/> : <PlayIcon />} text={isSpeaking ? '停止' : 'ナレーション'} onClick={handlePlayNarration} active={isSpeaking} />
                             <ControlButton icon={<DownloadIcon />} text="PDF保存" onClick={handleDownloadPdf}/>
@@ -156,16 +156,16 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                     {showEditPanel && !isCover && !isAfterword && (
                         <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-2xl border-4 border-white/50">
                             <form onSubmit={handleRegenSubmit}>
-                                <label htmlFor="regen-instruction" className="block font-bold mb-2 text-gray-700">AIへの修正指示:</label>
+                                <label htmlFor="regen-instruction" className="block font-bold mb-2 text-slate-700">AIへの修正指示:</label>
                                 <textarea
                                     id="regen-instruction"
                                     value={editInstruction}
                                     onChange={(e) => setEditInstruction(e.target.value)}
                                     placeholder="例: このページの主人公をもっと笑顔にして"
-                                    className="w-full h-24 p-2 border-2 border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-400"
+                                    className="w-full h-24 p-2 border-2 border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-400"
                                     required
                                 />
-                                <button type="submit" disabled={isRegenerating} className="w-full mt-3 flex items-center justify-center bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-4 rounded-full transition-colors disabled:bg-gray-400">
+                                <button type="submit" disabled={isRegenerating} className="w-full mt-3 flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-full transition-colors disabled:bg-gray-400">
                                     {isRegenerating ? '生成中...' : 'このページを再生成'}
                                 </button>
                             </form>
@@ -183,7 +183,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                 <div key={page.id} style={{width: 800, height: 600}}>
                     <div className="w-full h-full flex flex-row pdf-page" data-page-num={index + 1}>
                         <img src={page.imageUrl} alt={`Page ${page.id}`} className="w-1/2 h-full object-cover"/>
-                        <div className="w-1/2 p-6 flex items-center justify-center bg-rose-50">
+                        <div className="w-1/2 p-6 flex items-center justify-center bg-indigo-50">
                             <p className="text-xl leading-loose whitespace-pre-wrap">{page.text}</p>
                         </div>
                     </div>
@@ -205,8 +205,8 @@ const ControlButton: React.FC<{icon: React.ReactNode, text: string, onClick: () 
             disabled={disabled} 
             className={`w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center rounded-2xl transition-all duration-300 transform hover:-translate-y-1
             ${active 
-                ? 'bg-yellow-400 text-white shadow-lg' 
-                : 'bg-white text-yellow-600 hover:bg-yellow-100 shadow-md'
+                ? 'bg-indigo-500 text-white shadow-lg' 
+                : 'bg-white text-indigo-600 hover:bg-indigo-100 shadow-md'
             }
             ${disabled 
                 ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400 translate-y-0 shadow-none' 
@@ -216,7 +216,7 @@ const ControlButton: React.FC<{icon: React.ReactNode, text: string, onClick: () 
         >
             <div className="w-8 h-8 sm:w-10 sm:h-10">{icon}</div>
         </button>
-        <span className="text-xs sm:text-sm font-bold text-gray-600 text-center">{text}</span>
+        <span className="text-xs sm:text-sm font-bold text-slate-600 text-center">{text}</span>
     </div>
 )
 
