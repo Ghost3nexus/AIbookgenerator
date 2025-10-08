@@ -88,27 +88,30 @@ export async function generateStoryAndImages(
 
     const storyData = JSON.parse(storyResponse.candidates[0].content.parts[0].text);
 
-    const imageGenerationPromises = storyData.pages.map((page: any) => {
-        const prompt = `${page.image_prompt}, in the style of ${artStyle}. ${storyData.character_description}`;
-        return callProxy('models/imagen-4.0-generate-001:generateImages', {
-            prompt,
-            config: {
-                numberOfImages: 1,
-                aspectRatio: '4:3'
-            }
-        });
-    });
+    const generatedImagesResponses = [];
 
-    const coverImagePromise = callProxy('models/imagen-4.0-generate-001:generateImages', {
+    // Generate Cover Image
+    const coverImageResponse = await callProxy('models/imagen-4.0-generate-001:generateImages', {
         prompt: `Book cover illustration for a children's book titled '${storyData.title}'. Featuring the main character: ${storyData.character_description}. Style: ${artStyle}.`,
         config: {
             numberOfImages: 1,
             aspectRatio: '4:3'
         }
     });
-    
-    imageGenerationPromises.unshift(coverImagePromise);
-    const generatedImagesResponses = await Promise.all(imageGenerationPromises);
+    generatedImagesResponses.push(coverImageResponse);
+
+    // Generate Page Images sequentially
+    for (const page of storyData.pages) {
+        const prompt = `${page.image_prompt}, in the style of ${artStyle}. ${storyData.character_description}`;
+        const pageImageResponse = await callProxy('models/imagen-4.0-generate-001:generateImages', {
+            prompt,
+            config: {
+                numberOfImages: 1,
+                aspectRatio: '4:3'
+            }
+        });
+        generatedImagesResponses.push(pageImageResponse);
+    }
 
     const coverImageUrl = `data:image/png;base64,${generatedImagesResponses[0].generatedImages[0].image.imageBytes}`;
     const pageImageUrls = generatedImagesResponses.slice(1).map(res => `data:image/png;base64,${res.generatedImages[0].image.imageBytes}`);
