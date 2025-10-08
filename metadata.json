@@ -1,0 +1,5 @@
+{
+  "name": "Story Weaver: AI Picture Book Generator",
+  "description": "Story Weaver is a web application that uses Gemini AI to automatically generate a unique, approximately 10-page digital picture book from a user's ideas, images, and chosen themes. It provides an intuitive experience for creating, editing, and sharing personalized stories with beautiful illustrations and narration.",
+  "requestFramePermissions": []
+}
