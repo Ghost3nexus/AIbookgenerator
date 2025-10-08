@@ -17,7 +17,7 @@ export default async function handler(request: Request) {
     const { endpoint, payload } = await request.json();
 
     if (!process.env.API_KEY) {
-      return new Response(JSON.stringify({ error: 'API key not configured' }), {
+      return new Response(JSON.stringify({ error: { message: 'API key is not configured on the server.' } }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -35,9 +35,15 @@ export default async function handler(request: Request) {
     });
 
     if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Google AI API Error:', errorData);
-        return new Response(JSON.stringify(errorData), {
+        const errorText = await response.text();
+        console.error('Google AI API Error:', errorText);
+        let errorJson;
+        try {
+            errorJson = JSON.parse(errorText);
+        } catch (e) {
+            errorJson = { error: { message: errorText } };
+        }
+        return new Response(JSON.stringify(errorJson), {
             status: response.status,
             headers: { 'Content-Type': 'application/json' },
         });
@@ -52,7 +58,7 @@ export default async function handler(request: Request) {
 
   } catch (error) {
     console.error('Proxy Error:', error);
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+    return new Response(JSON.stringify({ error: { message: error instanceof Error ? error.message : 'Internal Server Error' } }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
