@@ -3,7 +3,6 @@ export interface Page {
   id: number;
   text: string;
   imageUrl: string;
-  imagePrompt?: string;
 }
 
 export interface Story {

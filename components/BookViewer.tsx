@@ -7,14 +7,13 @@ interface BookViewerProps {
   story: Story;
   onRestart: () => void;
   onRegeneratePage: (pageIndex: number, instruction: string) => Promise<void>;
-  onRegenerateCover: (instruction: string) => Promise<void>;
   onTextEdit: (pageIndex: number, newText: string) => void;
   onTextEditSave: () => void;
   onUndo: () => void;
   canUndo: boolean;
 }
 
-const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegeneratePage, onRegenerateCover, onTextEdit, onTextEditSave, onUndo, canUndo }) => {
+const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegeneratePage, onTextEdit, onTextEditSave, onUndo, canUndo }) => {
   const [currentPageIndex, setCurrentPageIndex] = useState(-1); // -1 for cover
   const { speak, stop, isSpeaking } = useSpeechSynthesis();
   
@@ -89,14 +88,9 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
   
   const handleRegenSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editInstruction.trim()) return;
-    
+    if (!editInstruction.trim() || currentPage === null) return;
     setIsRegenerating(true);
-    if (isCover) {
-        await onRegenerateCover(editInstruction);
-    } else if (currentPage) {
-        await onRegeneratePage(currentPageIndex, editInstruction);
-    }
+    await onRegeneratePage(currentPageIndex, editInstruction);
     setIsRegenerating(false);
     setEditInstruction('');
     setShowEditPanel(false);
@@ -150,7 +144,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                         <div className="grid grid-cols-3 gap-4 justify-items-center">
                             <ControlButton icon={isSpeaking ? <StopIcon/> : <PlayIcon />} text={isSpeaking ? '停止' : 'ナレーション'} onClick={handlePlayNarration} active={isSpeaking} />
                             <ControlButton icon={<DownloadIcon />} text="PDF保存" onClick={handleDownloadPdf}/>
-                            <ControlButton icon={<SparklesIcon />} text="AIで修正" onClick={() => setShowEditPanel(!showEditPanel)} active={showEditPanel} disabled={isAfterword}/>
+                            <ControlButton icon={<SparklesIcon />} text="AIで修正" onClick={() => setShowEditPanel(!showEditPanel)} active={showEditPanel} disabled={isCover || isAfterword}/>
                             {isEditingText ?
                                 <ControlButton icon={<SaveIcon />} text="テキスト保存" onClick={handleSaveTextEdit} /> :
                                 <ControlButton icon={<EditIcon />} text="テキスト編集" onClick={() => setIsEditingText(true)} disabled={isCover || isAfterword}/>
@@ -159,7 +153,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                              <ControlButton icon={<RefreshIcon />} text="最初から" onClick={onRestart}/>
                         </div>
                     </div>
-                    {showEditPanel && !isAfterword && (
+                    {showEditPanel && !isCover && !isAfterword && (
                         <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-2xl border-4 border-white/50">
                             <form onSubmit={handleRegenSubmit}>
                                 <label htmlFor="regen-instruction" className="block font-bold mb-2 text-slate-700">AIへの修正指示:</label>
@@ -167,12 +161,12 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                                     id="regen-instruction"
                                     value={editInstruction}
                                     onChange={(e) => setEditInstruction(e.target.value)}
-                                    placeholder={isCover ? "例: 主人公をもっと笑顔にして、タイトルを「ソラの月旅行」に変えて" : "例: このページの主人公をもっと笑顔にして"}
+                                    placeholder="例: このページの主人公をもっと笑顔にして"
                                     className="w-full h-24 p-2 border-2 border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-400"
                                     required
                                 />
                                 <button type="submit" disabled={isRegenerating} className="w-full mt-3 flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-full transition-colors disabled:bg-gray-400">
-                                    {isRegenerating ? '生成中...' : (isCover ? '表紙を再生成' : 'このページを再生成')}
+                                    {isRegenerating ? '生成中...' : 'このページを再生成'}
                                 </button>
                             </form>
                         </div>
