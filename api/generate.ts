@@ -1,7 +1,9 @@
 // Vercel Edge Functions
 // https://vercel.com/docs/functions/edge-functions
 
-export const config = { runtime: 'edge' };
+// By removing the config, we default to the Node.js runtime (Serverless Function),
+// which has a longer timeout than the Edge runtime.
+// export const config = { runtime: 'edge' };
 
 export default async function handler(request: Request) {
   if (request.method !== 'POST') {

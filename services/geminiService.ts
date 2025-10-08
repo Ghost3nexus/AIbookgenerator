@@ -185,3 +185,55 @@ export async function regeneratePage(
 
     return { newText, newImageUrl };
 }
+
+const coverRegenSchema = {
+    type: "OBJECT",
+    properties: {
+        new_title: { type: "STRING", description: "修正指示に基づいて更新された、絵本の新しいタイトル。" },
+        new_image_prompt: { type: "STRING", description: "修正指示に基づいて更新された、新しい表紙イラストを生成するための詳細な英語のプロンプト。" }
+    },
+    required: ["new_title", "new_image_prompt"]
+};
+
+export async function regenerateCover(
+    characterDescription: string,
+    artStyle: ArtStyle,
+    currentTitle: string,
+    instruction: string
+): Promise<{ newTitle: string; newCoverImageUrl:string }> {
+    const systemInstruction = `あなたは絵本を修正する編集者です。ユーザーの指示に従い、表紙のデザインを更新してください。`;
+    const userPrompt = `
+    現在のタイトル: "${currentTitle}"
+    主人公の特徴: "${characterDescription}"
+    アートスタイル: "${artStyle}"
+
+    ユーザーからの修正指示: "${instruction}"
+
+    上記の指示に基づき、この絵本の新しいタイトルと、表紙イラスト生成用の新しい英語プロンプトをJSON形式で生成してください。
+    `;
+
+    const regenResponse = await callProxy('models/gemini-2.5-flash:generateContent', {
+        contents: [{ parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemInstruction }] },
+        generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: coverRegenSchema,
+        },
+    });
+
+    const regenData = JSON.parse(regenResponse.candidates[0].content.parts[0].text);
+    const newTitle = regenData.new_title;
+    const newImagePrompt = `Book cover illustration for a children's book titled '${newTitle}'. Featuring the main character: ${characterDescription}. Style: ${artStyle}. ${regenData.new_image_prompt}`;
+    
+    const imageResponse = await callProxy('models/imagen-4.0-generate-001:predict', {
+        instances: [{ prompt: newImagePrompt }],
+        parameters: {
+            sampleCount: 1,
+            aspectRatio: '4:3'
+        }
+    });
+
+    const newCoverImageUrl = `data:image/png;base64,${imageResponse.predictions[0].bytesBase64Encoded}`;
+
+    return { newTitle, newCoverImageUrl };
+}
