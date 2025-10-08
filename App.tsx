@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Page, Story, ArtStyle, Theme } from './types';
-import { generateStoryAndImages, regeneratePage, regenerateCover } from './services/geminiService';
+import { generateStoryText, callProxy, regeneratePage, regenerateCover } from './services/geminiService';
 import Header from './components/Header';
 import IdeaForm from './components/IdeaForm';
 import LoadingAnimation from './components/LoadingAnimation';
@@ -13,6 +13,7 @@ const App: React.FC = () => {
   const [story, setStory] = useState<Story | null>(null);
   const [storyHistory, setStoryHistory] = useState<Story[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
 
   const handleStoryGeneration = useCallback(async (
     idea: string,
@@ -26,14 +27,52 @@ const App: React.FC = () => {
     setStoryHistory([]);
 
     try {
-      const newStory = await generateStoryAndImages(idea, characterImage, theme, artStyle);
-      setStory(newStory);
-      setStoryHistory([newStory]);
+      // 1. Generate story text and prompts only
+      setLoadingMessage('物語のあらすじを考えています...');
+      const storyTemplate = await generateStoryText(idea, characterImage, theme, artStyle);
+
+      // 2. Generate cover image
+      setLoadingMessage('表紙のイラストを生成中...');
+      const coverPrompt = `Book cover illustration for a children's book titled '${storyTemplate.title}'. Featuring the main character: ${storyTemplate.characterDescription}. Style: ${artStyle}.`;
+      const coverImageResponse = await callProxy('models/imagen-4.0-generate-001:predict', {
+          instances: [{ prompt: coverPrompt }],
+          parameters: { sampleCount: 1, aspectRatio: '4:3' }
+      });
+      const coverImageUrl = `data:image/png;base64,${coverImageResponse.predictions[0].bytesBase64Encoded}`;
+      
+      let inProgressStory: Story = { ...storyTemplate, coverImageUrl, pages: [] };
+      setStory(inProgressStory);
+
+      // 3. Generate page images one by one
+      const finalPages: Page[] = [];
+      for (let i = 0; i < storyTemplate.pages.length; i++) {
+        const page = storyTemplate.pages[i];
+        setLoadingMessage(`${i + 1}ページ目のイラストを生成中...`);
+        const prompt = `${page.imagePrompt}, in the style of ${artStyle}. ${storyTemplate.characterDescription}`;
+        const pageImageResponse = await callProxy('models/imagen-4.0-generate-001:predict', {
+            instances: [{ prompt }],
+            parameters: { sampleCount: 1, aspectRatio: '4:3' }
+        });
+        const imageUrl = `data:image/png;base64,${pageImageResponse.predictions[0].bytesBase64Encoded}`;
+        
+        const completedPage: Page = { ...page, imageUrl };
+        finalPages.push(completedPage);
+
+        // Update state after each image to show progress visually
+        setStory({ ...inProgressStory, pages: [...finalPages] });
+      }
+
+      const finalStory = { ...inProgressStory, pages: finalPages };
+      setStory(finalStory);
+      setStoryHistory([finalStory]);
       setAppState('PREVIEW');
+
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : '絵本の生成中にエラーが発生しました。もう一度お試しください。');
       setAppState('FORM');
+    } finally {
+      setLoadingMessage(null);
     }
   }, []);
 
@@ -135,7 +174,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (appState) {
       case 'LOADING':
-        return <LoadingAnimation />;
+        return <LoadingAnimation message={loadingMessage} />;
       case 'PREVIEW':
         if (story) {
           return (
@@ -151,7 +190,7 @@ const App: React.FC = () => {
             />
           );
         }
-        return null; // Should not happen
+        return <LoadingAnimation message="絵本の準備をしています..." />; // Fallback for partial story state
       case 'FORM':
       default:
         return (
