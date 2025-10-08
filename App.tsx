@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Page, Story, ArtStyle, Theme } from './types';
-import { generateStoryAndImages, regeneratePage } from './services/geminiService';
+import { generateStoryAndImages, regeneratePage, regenerateCover } from './services/geminiService';
 import Header from './components/Header';
 import IdeaForm from './components/IdeaForm';
 import LoadingAnimation from './components/LoadingAnimation';
@@ -36,6 +36,33 @@ const App: React.FC = () => {
       setAppState('FORM');
     }
   }, []);
+
+  const handleCoverRegeneration = useCallback(async (
+    instruction: string
+  ): Promise<void> => {
+    if (!story) return;
+
+    setAppState('LOADING');
+    setError(null);
+    try {
+      const { newTitle, newCoverImageUrl } = await regenerateCover(
+        story.characterDescription,
+        story.artStyle,
+        story.title,
+        instruction
+      );
+      
+      const newStoryState: Story = { ...story, title: newTitle, coverImageUrl: newCoverImageUrl };
+      setStory(newStoryState);
+      setStoryHistory(prev => [...prev, newStoryState]);
+
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : '表紙の再生成中にエラーが発生しました。');
+    } finally {
+        setAppState('PREVIEW');
+    }
+  }, [story]);
 
   const handlePageRegeneration = useCallback(async (
     pageIndex: number,
@@ -115,6 +142,7 @@ const App: React.FC = () => {
               story={story}
               onRestart={handleRestart}
               onRegeneratePage={handlePageRegeneration}
+              onRegenerateCover={handleCoverRegeneration}
               onTextEdit={handleTextEdit}
               onTextEditSave={handleTextEditSave}
               onUndo={handleUndo}
