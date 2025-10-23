@@ -5,14 +5,27 @@ import Header from './components/Header';
 import IdeaForm from './components/IdeaForm';
 import LoadingAnimation from './components/LoadingAnimation';
 import BookViewer from './components/BookViewer';
+import ApiKeySetup from './components/ApiKeySetup';
 
-type AppState = 'FORM' | 'LOADING' | 'PREVIEW';
+type AppState = 'API_SETUP' | 'FORM' | 'LOADING' | 'PREVIEW';
+
+function getInitialState(): AppState {
+    if (typeof window !== 'undefined' && localStorage.getItem('GEMINI_API_KEY')) {
+        return 'FORM';
+    }
+    return 'API_SETUP';
+}
+
 
 const App: React.FC = () => {
-  const [appState, setAppState] = useState<AppState>('FORM');
+  const [appState, setAppState] = useState<AppState>(getInitialState);
   const [story, setStory] = useState<Story | null>(null);
   const [storyHistory, setStoryHistory] = useState<Story[]>([]);
   const [error, setError] = useState<string | null>(null);
+  
+  const handleKeySaved = () => {
+    setAppState('FORM');
+  };
 
   const handleStoryGeneration = useCallback(async (
     idea: string,
@@ -98,7 +111,7 @@ const App: React.FC = () => {
   }, [storyHistory]);
 
   const handleRestart = () => {
-    setAppState('FORM');
+    setAppState(getInitialState());
     setStory(null);
     setError(null);
     setStoryHistory([]);
@@ -106,6 +119,8 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (appState) {
+      case 'API_SETUP':
+        return <ApiKeySetup onKeySaved={handleKeySaved} />;
       case 'LOADING':
         return <LoadingAnimation />;
       case 'PREVIEW':
@@ -122,7 +137,7 @@ const App: React.FC = () => {
             />
           );
         }
-        return null; // Should not happen
+        return <LoadingAnimation />; // Should not happen, but show loading just in case
       case 'FORM':
       default:
         return (

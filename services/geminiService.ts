@@ -1,4 +1,15 @@
+import { GoogleGenAI, Type } from "@google/genai";
 import { ArtStyle, Theme, Story, Page } from '../types';
+
+// Helper to get the API client, initialized with the key from localStorage
+function getGenAI() {
+    const apiKey = localStorage.getItem('GEMINI_API_KEY');
+    if (!apiKey) {
+        // This error will be caught by the calling function's try-catch block
+        throw new Error('Gemini APIキーが設定されていません。アプリを再読み込みして設定してください。');
+    }
+    return new GoogleGenAI({ apiKey });
+}
 
 async function fileToBase64(file: File): Promise<string> {
   return new Promise<string>((resolve, reject) => {
@@ -9,43 +20,25 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
-// A helper function to call our API proxy
-async function callProxy(endpoint: string, payload: object) {
-    const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ endpoint, payload }),
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData.error?.message || 'API request failed';
-        throw new Error(errorMessage);
-    }
-    return response.json();
-}
-
 const storySchema = {
-    type: "OBJECT",
+    type: Type.OBJECT,
     properties: {
-        title: { type: "STRING", description: "絵本のタイトル" },
-        character_description: { type: "STRING", description: "物語全体で一貫して使用する主人公の詳細な説明（外見、性格など）。" },
+        title: { type: Type.STRING, description: "絵本のタイトル" },
+        character_description: { type: Type.STRING, description: "物語全体で一貫して使用する主人公の詳細な説明（外見、性格など）。" },
         pages: {
-            type: "ARRAY",
+            type: Type.ARRAY,
             description: "8ページからなる物語のページ配列。",
             items: {
-                type: "OBJECT",
+                type: Type.OBJECT,
                 properties: {
-                    page_number: { type: "INTEGER" },
-                    text: { type: "STRING", description: "そのページの物語の文章。4〜6歳の子ども向けに、ひらがなを多く使った、心温まる優しい言葉で書いてください。" },
-                    image_prompt: { type: "STRING", description: "そのページのイラストを生成するための詳細な英語のプロンプト。character_descriptionを必ず反映させてください。" }
+                    page_number: { type: Type.INTEGER },
+                    text: { type: Type.STRING, description: "そのページの物語の文章。4〜6歳の子ども向けに、ひらがなを多く使った、心温まる優しい言葉で書いてください。" },
+                    image_prompt: { type: Type.STRING, description: "そのページのイラストを生成するための詳細な英語のプロンプト。character_descriptionを必ず反映させてください。" }
                 },
                 required: ["page_number", "text", "image_prompt"]
             }
         },
-        afterword: { type: "STRING", description: "あとがき。物語の教訓や、読者への優しいメッセージ。" }
+        afterword: { type: Type.STRING, description: "あとがき。物語の教訓や、読者への優しいメッセージ。" }
     },
     required: ["title", "character_description", "pages", "afterword"]
 };
@@ -56,6 +49,9 @@ export async function generateStoryAndImages(
     theme: Theme,
     artStyle: ArtStyle
 ): Promise<Story> {
+    const ai = getGenAI();
+
+    // 1. Generate story structure using Gemini Flash
     const systemInstruction = `あなたは受賞歴のある児童文学作家であり、優しいイラストレーターです。ユーザーの断片的なアイデアを、4〜6歳の子どもを対象とした、心温まる約10ページの絵本（表紙、物語8ページ、あとがき）に変えるのがあなたの仕事です。物語は常にハッピーエンドにしてください。`;
     
     const promptParts: any[] = [
@@ -77,40 +73,54 @@ export async function generateStoryAndImages(
         });
     }
 
-    const storyResponse = await callProxy('models/gemini-2.5-flash:generateContent', {
+    const storyResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
         contents: [{ parts: promptParts }],
-        systemInstruction: { parts: [{ text: systemInstruction }] },
-        generationConfig: {
+        config: {
+            systemInstruction,
             responseMimeType: "application/json",
-            responseSchema: storySchema,
+            responseSchema: storySchema as any, // Cast to any to match SDK expectations
         }
     });
 
-    const storyData = JSON.parse(storyResponse.candidates[0].content.parts[0].text);
+    let storyData;
+    try {
+        const text = storyResponse.text;
+        if (!text) {
+            throw new Error('AIからの物語の構造が不正です。');
+        }
+        storyData = JSON.parse(text);
+    } catch(e) {
+        console.error("Failed to parse story JSON from AI:", e, storyResponse.text);
+        throw new Error("AIから返された物語のデータ形式が正しくありません。もう一度お試しください。");
+    }
 
-    const generatedImagesResponses = [];
+    // 2. Generate images using Imagen
 
     // Generate Cover Image
     const coverPrompt = `Book cover illustration for a children's book titled '${storyData.title}'. Featuring the main character: ${storyData.character_description}. Style: ${artStyle}.`;
-    const coverImageResponse = await callProxy('models/imagen-4.0-generate-001:predict', {
-        instances: [{ prompt: coverPrompt }],
-        parameters: { sampleCount: 1, aspectRatio: '4:3' }
+    const coverImagePromise = ai.models.generateImages({
+        model: 'imagen-4.0-generate-001',
+        prompt: coverPrompt,
+        config: { numberOfImages: 1, aspectRatio: '4:3' }
     });
-    generatedImagesResponses.push(coverImageResponse);
 
-    // Generate Page Images sequentially
-    for (const page of storyData.pages) {
+    // Generate Page Images in parallel for better performance
+    const pageImagePromises = storyData.pages.map((page: any) => {
         const prompt = `${page.image_prompt}, in the style of ${artStyle}. ${storyData.character_description}`;
-        const pageImageResponse = await callProxy('models/imagen-4.0-generate-001:predict', {
-            instances: [{ prompt }],
-            parameters: { sampleCount: 1, aspectRatio: '4:3' }
+        return ai.models.generateImages({
+            model: 'imagen-4.0-generate-001',
+            prompt: prompt,
+            config: { numberOfImages: 1, aspectRatio: '4:3' }
         });
-        generatedImagesResponses.push(pageImageResponse);
-    }
+    });
 
-    const coverImageUrl = `data:image/png;base64,${generatedImagesResponses[0].predictions[0].bytesBase64Encoded}`;
-    const pageImageUrls = generatedImagesResponses.slice(1).map(res => `data:image/png;base64,${res.predictions[0].bytesBase64Encoded}`);
+    const [coverImageResult, ...pageImageResults] = await Promise.all([coverImagePromise, ...pageImagePromises]);
 
+    const coverImageUrl = `data:image/png;base64,${coverImageResult.generatedImages[0].image.imageBytes}`;
+    const pageImageUrls = pageImageResults.map(res => `data:image/png;base64,${res.generatedImages[0].image.imageBytes}`);
+
+    // 3. Assemble the final story object
     const finalStory: Story = {
         title: storyData.title,
         coverImageUrl: coverImageUrl,
@@ -129,10 +139,10 @@ export async function generateStoryAndImages(
 
 
 const pageRegenSchema = {
-    type: "OBJECT",
+    type: Type.OBJECT,
     properties: {
-        new_text: { type: "STRING", description: "修正指示に基づいて更新された、そのページの新しい物語の文章。" },
-        new_image_prompt: { type: "STRING", description: "修正指示に基づいて更新された、新しいイラストを生成するための詳細な英語のプロンプト。" }
+        new_text: { type: Type.STRING, description: "修正指示に基づいて更新された、そのページの新しい物語の文章。" },
+        new_image_prompt: { type: Type.STRING, description: "修正指示に基づいて更新された、新しいイラストを生成するための詳細な英語のプロンプト。" }
     },
     required: ["new_text", "new_image_prompt"]
 };
@@ -145,7 +155,8 @@ export async function regeneratePage(
     currentPage: Page,
     instruction: string
 ): Promise<{ newText: string; newImageUrl: string }> {
-
+    const ai = getGenAI();
+    
     const systemInstruction = `あなたは絵本を修正する編集者です。ユーザーの指示に従い、指定されたページの内容を更新してください。物語の一貫性を保つことが重要です。`;
     
     const userPrompt = `
@@ -156,32 +167,45 @@ export async function regeneratePage(
 
     ユーザーからの修正指示: "${instruction}"
 
-    上記の指示に基づき、このページの新しいテキストと、イラスト生成用の新しい英語プロンプトをJSON形式で生成してください。
+    上記の指示に基づき、このページの新しいテキストと、イラスト生成用の新しい英語のプロンプトをJSON形式で生成してください。
     イラストのプロンプトには、必ず主人公の特徴「${characterDescription}」とアートスタイル「${artStyle}」を反映させてください。
     `;
 
-    const regenResponse = await callProxy('models/gemini-2.5-flash:generateContent', {
+    const regenResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
         contents: [{ parts: [{ text: userPrompt }] }],
-        systemInstruction: { parts: [{ text: systemInstruction }] },
-        generationConfig: {
+        config: {
+            systemInstruction,
             responseMimeType: "application/json",
-            responseSchema: pageRegenSchema,
+            responseSchema: pageRegenSchema as any, // Cast to any to match SDK expectations
         },
     });
 
-    const regenData = JSON.parse(regenResponse.candidates[0].content.parts[0].text);
+    let regenData;
+    try {
+        const text = regenResponse.text;
+        if (!text) {
+            throw new Error('AIからのページ再生成データの構造が不正です。');
+        }
+        regenData = JSON.parse(text);
+    } catch(e) {
+        console.error("Failed to parse page regeneration JSON from AI:", e, regenResponse.text);
+        throw new Error("AIから返されたページ更新データの形式が正しくありません。もう一度お試しください。");
+    }
+
     const newText = regenData.new_text;
     const newImagePrompt = `${regenData.new_image_prompt}, in the style of ${artStyle}. ${characterDescription}`;
     
-    const imageResponse = await callProxy('models/imagen-4.0-generate-001:predict', {
-        instances: [{ prompt: newImagePrompt }],
-        parameters: {
-            sampleCount: 1,
+    const imageResponse = await ai.models.generateImages({
+        model: 'imagen-4.0-generate-001',
+        prompt: newImagePrompt,
+        config: {
+            numberOfImages: 1,
             aspectRatio: '4:3'
         }
     });
 
-    const newImageUrl = `data:image/png;base64,${imageResponse.predictions[0].bytesBase64Encoded}`;
+    const newImageUrl = `data:image/png;base64,${imageResponse.generatedImages[0].image.imageBytes}`;
 
     return { newText, newImageUrl };
 }
