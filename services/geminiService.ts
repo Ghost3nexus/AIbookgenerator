@@ -115,7 +115,7 @@ export async function generateStoryAndImages(
         }
 
         // 2. Generate images using Imagen
-        const coverPrompt = `A beautiful and captivating book cover illustration for a children's storybook titled "${storyData.title}". The main character is: ${storyData.character_description}. Style: ${artStyle}. IMPORTANT: Do NOT write any text or letters on the image itself. The image should be purely illustrative.`;
+        const coverPrompt = `A beautiful book cover illustration for a children's story. The main character is: ${storyData.character_description}. The style should be ${artStyle}. Absolutely no text, letters, or words of any kind should be on the image. Create a pure illustration.`;
         const coverImagePromise = ai.models.generateImages({
             model: 'imagen-4.0-generate-001',
             prompt: coverPrompt,
