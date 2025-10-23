@@ -6,6 +6,7 @@ import IdeaForm from './components/IdeaForm';
 import LoadingAnimation from './components/LoadingAnimation';
 import BookViewer from './components/BookViewer';
 import ApiKeySetup from './components/ApiKeySetup';
+import { CloseIcon } from './components/Icons';
 
 type AppState = 'API_SETUP' | 'FORM' | 'LOADING' | 'PREVIEW';
 
@@ -22,9 +23,13 @@ const App: React.FC = () => {
   const [story, setStory] = useState<Story | null>(null);
   const [storyHistory, setStoryHistory] = useState<Story[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   
   const handleKeySaved = () => {
-    setAppState('FORM');
+    if (appState === 'API_SETUP') {
+      setAppState('FORM');
+    }
+    setShowApiKeyModal(false);
   };
 
   const handleStoryGeneration = useCallback(async (
@@ -89,9 +94,6 @@ const App: React.FC = () => {
     updatedPages[pageIndex] = { ...updatedPages[pageIndex], text: newText };
     const newStoryState = { ...story, pages: updatedPages };
     setStory(newStoryState);
-    // Note: We don't push to history on every keystroke, maybe on blur or save.
-    // For simplicity, we'll add a separate button or auto-save logic if needed.
-    // Here we'll just update the current state.
   }, [story]);
   
   const handleTextEditSave = useCallback(() => {
@@ -111,7 +113,7 @@ const App: React.FC = () => {
   }, [storyHistory]);
 
   const handleRestart = () => {
-    setAppState(getInitialState());
+    setAppState('FORM');
     setStory(null);
     setError(null);
     setStoryHistory([]);
@@ -137,7 +139,7 @@ const App: React.FC = () => {
             />
           );
         }
-        return <LoadingAnimation />; // Should not happen, but show loading just in case
+        return <LoadingAnimation />;
       case 'FORM':
       default:
         return (
@@ -148,10 +150,25 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen text-slate-700">
-      <Header />
+      <Header onSettingsClick={() => setShowApiKeyModal(true)} showSettings={appState !== 'API_SETUP'} />
       <main className="container mx-auto px-4 py-8">
         {renderContent()}
       </main>
+
+      {showApiKeyModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="relative max-w-2xl w-full">
+            <ApiKeySetup onKeySaved={handleKeySaved} />
+            <button
+              onClick={() => setShowApiKeyModal(false)}
+              className="absolute top-0 right-0 -mt-4 -mr-4 w-12 h-12 bg-white/80 rounded-full text-slate-800 flex items-center justify-center hover:bg-white hover:scale-110 transition-transform shadow-lg"
+              aria-label="閉じる"
+            >
+              <CloseIcon className="w-7 h-7" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

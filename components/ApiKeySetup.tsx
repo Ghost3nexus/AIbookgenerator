@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { MagicWandIcon } from './Icons';
+import React, { useState, useEffect } from 'react';
+import { MagicWandIcon, KeyIcon } from './Icons';
 
 interface ApiKeySetupProps {
   onKeySaved: () => void;
@@ -7,13 +7,29 @@ interface ApiKeySetupProps {
 
 const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onKeySaved }) => {
   const [apiKey, setApiKey] = useState('');
+  const [storedKey, setStoredKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    const key = localStorage.getItem('GEMINI_API_KEY');
+    setStoredKey(key);
+  }, []);
 
   const handleSave = () => {
     if (apiKey.trim().startsWith('AIza')) {
       localStorage.setItem('GEMINI_API_KEY', apiKey.trim());
+      alert('APIキーを保存しました！');
       onKeySaved();
     } else {
       alert('無効なAPIキーのようです。Google AI Studioで取得したAPIキーを入力してください。');
+    }
+  };
+
+  const handleReset = () => {
+    if (window.confirm('保存されているAPIキーを削除しますか？')) {
+      localStorage.removeItem('GEMINI_API_KEY');
+      setStoredKey(null);
+      setApiKey('');
+      alert('APIキーを削除しました。新しいキーを入力してください。');
     }
   };
   
@@ -22,8 +38,37 @@ const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onKeySaved }) => {
     handleSave();
   }
 
-  return (
-    <div className="max-w-2xl mx-auto mt-10 bg-white/60 backdrop-blur-xl p-8 sm:p-12 rounded-3xl shadow-2xl border-4 border-white/50 text-center">
+  const commonWrapper = (children: React.ReactNode) => (
+    <div className="w-full bg-white/60 backdrop-blur-xl p-8 sm:p-12 rounded-3xl shadow-2xl border-4 border-white/50 text-center">
+        {children}
+    </div>
+  );
+
+  if (storedKey) {
+    return commonWrapper(
+        <>
+            <KeyIcon className="w-16 h-16 mx-auto text-indigo-500 drop-shadow-lg" />
+            <h2 className="text-3xl sm:text-4xl font-display mt-4 text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-sky-500">
+                APIキー設定済み
+            </h2>
+            <p className="text-slate-600 mt-4 text-lg">
+                現在、Gemini APIキーが設定されています。
+            </p>
+            <div className="my-6 p-4 bg-slate-800/80 rounded-xl text-white font-mono text-center shadow-inner">
+                {storedKey.slice(0, 8)}*******************
+            </div>
+            <button
+                onClick={handleReset}
+                className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold text-xl py-4 px-6 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 ease-in-out font-display tracking-wider"
+            >
+                🔄 APIキーを入れ直す
+            </button>
+        </>
+    );
+  }
+
+  return commonWrapper(
+    <>
       <MagicWandIcon className="w-16 h-16 mx-auto text-indigo-500 drop-shadow-lg" />
       <h2 className="text-3xl sm:text-4xl font-display mt-4 text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-indigo-500">
         はじめに
@@ -57,7 +102,7 @@ const ApiKeySetup: React.FC<ApiKeySetupProps> = ({ onKeySaved }) => {
           APIキーの取得はこちら
         </a>
       </p>
-    </div>
+    </>
   );
 };
 
