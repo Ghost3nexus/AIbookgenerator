@@ -213,8 +213,14 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                 {story.pages.map((page, index) => (
                     <div key={`pdf-${page.id}`} style={{width: 800, height: 600}}>
                         <div className="w-full h-full flex flex-row pdf-page bg-white" data-page-num={index + 1}>
-                             <div className="w-1/2 h-full bg-black flex items-center justify-center overflow-hidden">
-                                <img src={page.imageUrl} alt="" className="max-w-full max-h-full" style={{ objectFit: 'contain' }}/>
+                             <div className="w-1/2 h-full bg-black flex items-center justify-center">
+                                <div style={{ width: '400px', height: '300px' }}>
+                                    <img 
+                                        src={page.imageUrl} 
+                                        alt=""
+                                        style={{ width: '100%', height: '100%' }}
+                                    />
+                                </div>
                              </div>
                             <div className="w-1/2 p-6 flex items-center justify-center bg-indigo-50">
                                 <p className="text-2xl leading-loose whitespace-pre-wrap">{page.text}</p>
