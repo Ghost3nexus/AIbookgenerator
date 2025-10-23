@@ -128,14 +128,17 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
   return (
     <div>
         <div className="max-w-7xl mx-auto">
+            <h2 className="text-4xl lg:text-5xl font-display text-center mb-6 text-indigo-700 drop-shadow-md">{story.title}</h2>
             <div className="flex flex-col lg:flex-row items-center justify-center gap-8">
                 {/* Book display */}
                 <div className="w-full lg:w-3/5 relative">
                     <div className="shadow-2xl rounded-lg overflow-hidden book-aspect bg-white border-4 border-white/50">
-                        {isCover && <PageContent title={story.title} imageUrl={story.coverImageUrl} />}
+                        {isCover && <PageContent imageUrl={story.coverImageUrl} />}
                         {currentPage && (
                             <div className="w-full h-full flex flex-col md:flex-row" data-page-num={currentPageIndex + 1}>
-                                <img src={currentPage.imageUrl} alt={`Page ${currentPage.id}`} className="w-full md:w-1/2 h-1/2 md:h-full object-cover"/>
+                                <div className="w-full md:w-1/2 h-1/2 md:h-full bg-black">
+                                    <img src={currentPage.imageUrl} alt={`Page ${currentPage.id}`} className="w-full h-full object-contain"/>
+                                </div>
                                 <div className="w-full md:w-1/2 p-6 flex items-center justify-center bg-indigo-50">
                                     {isEditingText ? (
                                         <textarea
@@ -149,7 +152,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                                 </div>
                             </div>
                         )}
-                        {isAfterword && <PageContent title="あとがき" text={story.afterword} imageUrl={story.coverImageUrl} isAfterword={true}/>}
+                        {isAfterword && <PageContent title="あとがき" text={story.afterword} imageUrl={story.pages[0].imageUrl} isAfterword={true}/>}
                     </div>
                      <div className="flex justify-between items-center mt-4 w-full px-2">
                         <button onClick={handlePrevPage} disabled={isCover} className="p-4 rounded-full bg-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-100 transition-all transform hover:scale-110"><ArrowLeftIcon className="w-8 h-8 text-indigo-600"/></button>
@@ -198,13 +201,16 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
         {/* Off-screen renderer for PDF generation */}
         {isGeneratingPdf && (
             <div id="pdf-render-container" className="absolute -left-[9999px] top-0" aria-hidden="true">
-                <div style={{width: 800, height: 600}}>
-                    <PageContent isPdfPage={true} title={story.title} imageUrl={story.coverImageUrl} />
+                <div style={{width: 800, height: 600}} className="pdf-page bg-white flex flex-col justify-center items-center p-8 box-border">
+                    <h2 className="text-5xl font-display text-center mb-6 shrink-0">{story.title}</h2>
+                    <div className="w-full flex-grow relative">
+                        <img src={story.coverImageUrl} alt={story.title} className="absolute top-0 left-0 w-full h-full object-contain" />
+                    </div>
                 </div>
                 {story.pages.map((page, index) => (
                     <div key={`pdf-${page.id}`} style={{width: 800, height: 600}}>
                         <div className="w-full h-full flex flex-row pdf-page bg-white" data-page-num={index + 1}>
-                            <img src={page.imageUrl} alt="" className="w-1/2 h-full object-cover"/>
+                             <div className="w-1/2 h-full bg-black"><img src={page.imageUrl} alt="" className="w-full h-full object-contain"/></div>
                             <div className="w-1/2 p-6 flex items-center justify-center bg-indigo-50">
                                 <p className="text-xl leading-loose whitespace-pre-wrap">{page.text}</p>
                             </div>
@@ -212,7 +218,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                     </div>
                 ))}
                 <div style={{width: 800, height: 600}}>
-                    <PageContent isPdfPage={true} title="あとがき" text={story.afterword} imageUrl={story.coverImageUrl} isAfterword={true}/>
+                    <PageContent isPdfPage={true} title="あとがき" text={story.afterword} imageUrl={story.pages[0].imageUrl} isAfterword={true}/>
                 </div>
             </div>
         )}
@@ -246,11 +252,15 @@ const ControlButton: React.FC<{icon: React.ReactNode, text: string, onClick: () 
 const PageContent: React.FC<{title?: string, text?: string, imageUrl: string, isAfterword?: boolean, isPdfPage?: boolean}> = ({ title, text, imageUrl, isAfterword, isPdfPage }) => (
     <div className={`w-full h-full flex items-center justify-center relative ${isPdfPage ? 'pdf-page' : ''}`} data-page-num={isAfterword ? 'afterword' : 'cover'}>
         <img src={imageUrl} alt={title || ''} className="absolute inset-0 w-full h-full object-cover z-0" />
-        <div className={`absolute inset-0 bg-black/30 ${isAfterword ? 'backdrop-blur-sm' : ''}`}></div>
-        <div className="relative z-10 text-center text-white p-8">
-            {title && <h2 className="font-display text-5xl drop-shadow-lg">{title}</h2>}
-            {text && <p className="mt-4 text-2xl max-w-2xl mx-auto leading-relaxed whitespace-pre-wrap bg-black/30 p-4 rounded-lg">{text}</p>}
-        </div>
+        {(title || text) && (
+            <>
+                <div className={`absolute inset-0 bg-black/30 ${isAfterword ? 'backdrop-blur-sm' : ''}`}></div>
+                <div className="relative z-10 text-center text-white p-8">
+                    {title && <h2 className="font-display text-5xl drop-shadow-lg">{title}</h2>}
+                    {text && <p className="mt-4 text-2xl max-w-2xl mx-auto leading-relaxed whitespace-pre-wrap bg-black/30 p-4 rounded-lg">{text}</p>}
+                </div>
+            </>
+        )}
     </div>
 );
 
