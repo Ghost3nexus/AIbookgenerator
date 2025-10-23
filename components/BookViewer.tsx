@@ -23,6 +23,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [editInstruction, setEditInstruction] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const totalPages = story.pages.length + 1; // +1 for afterword page
   const isCover = currentPageIndex === -1;
@@ -62,28 +63,48 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
     }
   };
   
-  const handleDownloadPdf = async () => {
-    // @ts-ignore
-    const { jsPDF } = window.jspdf;
-    // @ts-ignore
-    const html2canvas = window.html2canvas;
-    
-    const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'px',
-        format: [800, 600]
-    });
+  const handleDownloadPdf = () => {
+    setIsGeneratingPdf(true);
+    // Use a timeout to allow React to render the off-screen pages before capturing
+    setTimeout(async () => {
+        // @ts-ignore
+        const { jsPDF } = window.jspdf;
+        // @ts-ignore
+        const html2canvas = window.html2canvas;
 
-    const pageElements = document.querySelectorAll('.pdf-page');
-    for (let i = 0; i < pageElements.length; i++) {
-        const canvas = await html2canvas(pageElements[i] as HTMLElement, {scale: 2});
-        const imgData = canvas.toDataURL('image/png');
-        if (i > 0) {
-            pdf.addPage();
+        const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'px',
+            format: [800, 600]
+        });
+
+        const pageElements = document.querySelectorAll('#pdf-render-container .pdf-page');
+        if (pageElements.length === 0) {
+            console.error("PDF生成用のページが見つかりませんでした。");
+            setIsGeneratingPdf(false);
+            return;
         }
-        pdf.addImage(imgData, 'PNG', 0, 0, 800, 600);
-    }
-    pdf.save(`${story.title}.pdf`);
+
+        for (let i = 0; i < pageElements.length; i++) {
+            try {
+                const canvas = await html2canvas(pageElements[i] as HTMLElement, {
+                    scale: 2,
+                    useCORS: true,
+                    width: 800,
+                    height: 600
+                });
+                const imgData = canvas.toDataURL('image/jpeg', 0.9);
+                if (i > 0) {
+                    pdf.addPage([800, 600], 'landscape');
+                }
+                pdf.addImage(imgData, 'JPEG', 0, 0, 800, 600);
+            } catch (error) {
+                console.error(`PDFのページ${i}の描画に失敗しました:`, error);
+            }
+        }
+        pdf.save(`${story.title}.pdf`);
+        setIsGeneratingPdf(false);
+    }, 100);
   };
   
   const handleRegenSubmit = async (e: React.FormEvent) => {
@@ -111,9 +132,9 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                 {/* Book display */}
                 <div className="w-full lg:w-3/5 relative">
                     <div className="shadow-2xl rounded-lg overflow-hidden book-aspect bg-white border-4 border-white/50">
-                        {isCover && <PageContent isPdfPage={true} title={story.title} imageUrl={story.coverImageUrl} />}
+                        {isCover && <PageContent title={story.title} imageUrl={story.coverImageUrl} />}
                         {currentPage && (
-                            <div className="w-full h-full flex flex-col md:flex-row pdf-page" data-page-num={currentPageIndex + 1}>
+                            <div className="w-full h-full flex flex-col md:flex-row" data-page-num={currentPageIndex + 1}>
                                 <img src={currentPage.imageUrl} alt={`Page ${currentPage.id}`} className="w-full md:w-1/2 h-1/2 md:h-full object-cover"/>
                                 <div className="w-full md:w-1/2 p-6 flex items-center justify-center bg-indigo-50">
                                     {isEditingText ? (
@@ -128,7 +149,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                                 </div>
                             </div>
                         )}
-                        {isAfterword && <PageContent isPdfPage={true} title="あとがき" text={story.afterword} imageUrl={story.coverImageUrl} isAfterword={true}/>}
+                        {isAfterword && <PageContent title="あとがき" text={story.afterword} imageUrl={story.coverImageUrl} isAfterword={true}/>}
                     </div>
                      <div className="flex justify-between items-center mt-4 w-full px-2">
                         <button onClick={handlePrevPage} disabled={isCover} className="p-4 rounded-full bg-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-100 transition-all transform hover:scale-110"><ArrowLeftIcon className="w-8 h-8 text-indigo-600"/></button>
@@ -143,7 +164,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                         <h3 className="text-3xl font-display mb-6 text-center text-indigo-600">魔法の仕上げ 🪄</h3>
                         <div className="grid grid-cols-3 gap-4 justify-items-center">
                             <ControlButton icon={isSpeaking ? <StopIcon/> : <PlayIcon />} text={isSpeaking ? '停止' : 'ナレーション'} onClick={handlePlayNarration} active={isSpeaking} />
-                            <ControlButton icon={<DownloadIcon />} text="PDF保存" onClick={handleDownloadPdf}/>
+                            <ControlButton icon={<DownloadIcon />} text={isGeneratingPdf ? '作成中...' : 'PDF保存'} onClick={handleDownloadPdf} disabled={isGeneratingPdf}/>
                             <ControlButton icon={<SparklesIcon />} text="AIで修正" onClick={() => setShowEditPanel(!showEditPanel)} active={showEditPanel} disabled={isCover || isAfterword}/>
                             {isEditingText ?
                                 <ControlButton icon={<SaveIcon />} text="テキスト保存" onClick={handleSaveTextEdit} /> :
@@ -174,25 +195,27 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                 </div>
             </div>
         </div>
-        {/* Hidden pages for PDF generation */}
-        <div className="hidden">
-            <div style={{width: 800, height: 600}}>
-                <PageContent isPdfPage={true} title={story.title} imageUrl={story.coverImageUrl} />
-            </div>
-            {story.pages.map((page, index) => (
-                <div key={page.id} style={{width: 800, height: 600}}>
-                    <div className="w-full h-full flex flex-row pdf-page" data-page-num={index + 1}>
-                        <img src={page.imageUrl} alt={`Page ${page.id}`} className="w-1/2 h-full object-cover"/>
-                        <div className="w-1/2 p-6 flex items-center justify-center bg-indigo-50">
-                            <p className="text-xl leading-loose whitespace-pre-wrap">{page.text}</p>
+        {/* Off-screen renderer for PDF generation */}
+        {isGeneratingPdf && (
+            <div id="pdf-render-container" className="absolute -left-[9999px] top-0" aria-hidden="true">
+                <div style={{width: 800, height: 600}}>
+                    <PageContent isPdfPage={true} title={story.title} imageUrl={story.coverImageUrl} />
+                </div>
+                {story.pages.map((page, index) => (
+                    <div key={`pdf-${page.id}`} style={{width: 800, height: 600}}>
+                        <div className="w-full h-full flex flex-row pdf-page bg-white" data-page-num={index + 1}>
+                            <img src={page.imageUrl} alt="" className="w-1/2 h-full object-cover"/>
+                            <div className="w-1/2 p-6 flex items-center justify-center bg-indigo-50">
+                                <p className="text-xl leading-loose whitespace-pre-wrap">{page.text}</p>
+                            </div>
                         </div>
                     </div>
+                ))}
+                <div style={{width: 800, height: 600}}>
+                    <PageContent isPdfPage={true} title="あとがき" text={story.afterword} imageUrl={story.coverImageUrl} isAfterword={true}/>
                 </div>
-            ))}
-            <div style={{width: 800, height: 600}}>
-                 <PageContent isPdfPage={true} title="あとがき" text={story.afterword} imageUrl={story.coverImageUrl} isAfterword={true}/>
             </div>
-        </div>
+        )}
     </div>
   );
 };
