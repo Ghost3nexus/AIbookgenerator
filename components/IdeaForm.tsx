@@ -3,7 +3,8 @@ import { ArtStyle, Theme } from '../types';
 import { 
     MagicWandIcon, UploadIcon, SparklesIcon, AlertIcon, 
     FriendshipIcon, CourageIcon, AdventureIcon, FamilyIcon,
-    WatercolorIcon, AnimeIcon, CrayonIcon, DigitalArtIcon
+    WatercolorIcon, AnimeIcon, CrayonIcon, DigitalArtIcon,
+    BookIcon
 } from './Icons';
 
 interface IdeaFormProps {
@@ -11,7 +12,8 @@ interface IdeaFormProps {
     idea: string,
     characterImage: File | null,
     theme: Theme,
-    artStyle: ArtStyle
+    artStyle: ArtStyle,
+    pageCount: number
   ) => void;
   error: string | null;
 }
@@ -51,6 +53,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onGenerate, error }) => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [theme, setTheme] = useState<Theme>(Theme.Adventure);
   const [artStyle, setArtStyle] = useState<ArtStyle>(ArtStyle.Watercolor);
+  const [pageCount, setPageCount] = useState<number>(4);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -63,7 +66,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onGenerate, error }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (idea.trim()) {
-      onGenerate(idea, characterImage, theme, artStyle);
+      onGenerate(idea, characterImage, theme, artStyle, pageCount);
     }
   };
 
@@ -115,7 +118,22 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onGenerate, error }) => {
             </div>
 
             <div>
-                <h3 className="text-xl font-bold mb-4 text-slate-700">3. テーマを選ぶ</h3>
+                <h3 className="text-xl font-bold mb-4 text-slate-700">3. ページ数を選ぶ</h3>
+                <div className="flex flex-wrap justify-center gap-4">
+                    {[4, 6, 8].map((count) => (
+                        <SelectionCard
+                            key={count}
+                            icon={<BookIcon className="w-full h-full text-slate-500" />}
+                            label={`${count}ページ`}
+                            isActive={pageCount === count}
+                            onClick={() => setPageCount(count)}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            <div>
+                <h3 className="text-xl font-bold mb-4 text-slate-700">4. テーマを選ぶ</h3>
                 <div className="flex flex-wrap justify-center gap-4">
                     {Object.values(Theme).map((t) => (
                         <SelectionCard key={t} icon={themeIcons[t]} label={t} isActive={theme === t} onClick={() => setTheme(t)} />
@@ -124,7 +142,7 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onGenerate, error }) => {
             </div>
             
             <div>
-                <h3 className="text-xl font-bold mb-4 text-slate-700">4. アートスタイルを選ぶ</h3>
+                <h3 className="text-xl font-bold mb-4 text-slate-700">5. アートスタイルを選ぶ</h3>
                 <div className="flex flex-wrap justify-center gap-4">
                      {Object.values(ArtStyle).map((s) => (
                         <SelectionCard key={s} icon={artStyleIcons[s]} label={s} isActive={artStyle === s} onClick={() => setArtStyle(s)} />

@@ -36,7 +36,8 @@ const App: React.FC = () => {
     idea: string,
     characterImage: File | null,
     theme: Theme,
-    artStyle: ArtStyle
+    artStyle: ArtStyle,
+    pageCount: number
   ) => {
     setAppState('LOADING');
     setError(null);
@@ -44,7 +45,7 @@ const App: React.FC = () => {
     setStoryHistory([]);
 
     try {
-      const newStory = await generateStoryAndImages(idea, characterImage, theme, artStyle);
+      const newStory = await generateStoryAndImages(idea, characterImage, theme, artStyle, pageCount);
       setStory(newStory);
       setStoryHistory([newStory]);
       setAppState('PREVIEW');
