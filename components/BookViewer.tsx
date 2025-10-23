@@ -90,8 +90,11 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                 const canvas = await html2canvas(pageElements[i] as HTMLElement, {
                     scale: 2,
                     useCORS: true,
+                    logging: false,
                     width: 800,
-                    height: 600
+                    height: 600,
+                    windowWidth: 800,
+                    windowHeight: 600
                 });
                 const imgData = canvas.toDataURL('image/jpeg', 0.9);
                 if (i > 0) {
@@ -137,7 +140,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                         {currentPage && (
                             <div className="w-full h-full flex flex-col md:flex-row" data-page-num={currentPageIndex + 1}>
                                 <div className="w-full md:w-1/2 h-1/2 md:h-full bg-black">
-                                    <img src={currentPage.imageUrl} alt={`Page ${currentPage.id}`} className="w-full h-full object-contain"/>
+                                    <img src={currentPage.imageUrl} alt={`Page ${currentPage.id}`} className="w-full h-full" style={{ objectFit: 'contain' }}/>
                                 </div>
                                 <div className="w-full md:w-1/2 p-6 flex items-center justify-center bg-indigo-50">
                                     {isEditingText ? (
@@ -203,14 +206,16 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
             <div id="pdf-render-container" className="absolute -left-[9999px] top-0" aria-hidden="true">
                 <div style={{width: 800, height: 600}} className="pdf-page bg-white flex flex-col justify-center items-center p-8 box-border">
                     <h2 className="text-5xl font-display text-center mb-6 shrink-0">{story.title}</h2>
-                    <div className="w-full flex-grow relative">
-                        <img src={story.coverImageUrl} alt={story.title} className="absolute top-0 left-0 w-full h-full object-contain" />
+                    <div className="w-full flex-grow flex items-center justify-center overflow-hidden">
+                        <img src={story.coverImageUrl} alt={story.title} className="max-w-full max-h-full" style={{ objectFit: 'contain' }} />
                     </div>
                 </div>
                 {story.pages.map((page, index) => (
                     <div key={`pdf-${page.id}`} style={{width: 800, height: 600}}>
                         <div className="w-full h-full flex flex-row pdf-page bg-white" data-page-num={index + 1}>
-                             <div className="w-1/2 h-full bg-black"><img src={page.imageUrl} alt="" className="w-full h-full object-contain"/></div>
+                             <div className="w-1/2 h-full bg-black flex items-center justify-center overflow-hidden">
+                                <img src={page.imageUrl} alt="" className="max-w-full max-h-full" style={{ objectFit: 'contain' }}/>
+                             </div>
                             <div className="w-1/2 p-6 flex items-center justify-center bg-indigo-50">
                                 <p className="text-2xl leading-loose whitespace-pre-wrap">{page.text}</p>
                             </div>
@@ -250,8 +255,10 @@ const ControlButton: React.FC<{icon: React.ReactNode, text: string, onClick: () 
 )
 
 const PageContent: React.FC<{title?: string, text?: string, imageUrl: string, isAfterword?: boolean, isPdfPage?: boolean}> = ({ title, text, imageUrl, isAfterword, isPdfPage }) => (
-    <div className={`w-full h-full flex items-center justify-center relative ${isPdfPage ? 'pdf-page' : ''}`} data-page-num={isAfterword ? 'afterword' : 'cover'}>
-        <img src={imageUrl} alt={title || ''} className="absolute inset-0 w-full h-full object-contain z-0" />
+    <div className={`w-full h-full relative ${isPdfPage ? 'pdf-page' : ''} flex items-center justify-center`} data-page-num={isAfterword ? 'afterword' : 'cover'}>
+        <div className="absolute inset-0 z-0 flex items-center justify-center overflow-hidden">
+            <img src={imageUrl} alt={title || ''} className="max-w-full max-h-full" style={{ objectFit: 'contain' }} />
+        </div>
         {(title || text) && (
             <>
                 <div className={`absolute inset-0 bg-black/30 ${isAfterword ? 'backdrop-blur-sm' : ''}`}></div>
