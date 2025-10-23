@@ -212,7 +212,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                         <div className="w-full h-full flex flex-row pdf-page bg-white" data-page-num={index + 1}>
                              <div className="w-1/2 h-full bg-black"><img src={page.imageUrl} alt="" className="w-full h-full object-contain"/></div>
                             <div className="w-1/2 p-6 flex items-center justify-center bg-indigo-50">
-                                <p className="text-xl leading-loose whitespace-pre-wrap">{page.text}</p>
+                                <p className="text-2xl leading-loose whitespace-pre-wrap">{page.text}</p>
                             </div>
                         </div>
                     </div>
@@ -251,7 +251,7 @@ const ControlButton: React.FC<{icon: React.ReactNode, text: string, onClick: () 
 
 const PageContent: React.FC<{title?: string, text?: string, imageUrl: string, isAfterword?: boolean, isPdfPage?: boolean}> = ({ title, text, imageUrl, isAfterword, isPdfPage }) => (
     <div className={`w-full h-full flex items-center justify-center relative ${isPdfPage ? 'pdf-page' : ''}`} data-page-num={isAfterword ? 'afterword' : 'cover'}>
-        <img src={imageUrl} alt={title || ''} className="absolute inset-0 w-full h-full object-cover z-0" />
+        <img src={imageUrl} alt={title || ''} className="absolute inset-0 w-full h-full object-contain z-0" />
         {(title || text) && (
             <>
                 <div className={`absolute inset-0 bg-black/30 ${isAfterword ? 'backdrop-blur-sm' : ''}`}></div>
