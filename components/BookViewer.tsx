@@ -75,7 +75,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
         const pdf = new jsPDF({
             orientation: 'landscape',
             unit: 'px',
-            format: [800, 600]
+            format: [1200, 900]
         });
 
         const pageElements = document.querySelectorAll('#pdf-render-container .pdf-page');
@@ -88,19 +88,19 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
         for (let i = 0; i < pageElements.length; i++) {
             try {
                 const canvas = await html2canvas(pageElements[i] as HTMLElement, {
-                    scale: 2,
+                    scale: 3,
                     useCORS: true,
                     logging: false,
-                    width: 800,
-                    height: 600,
-                    windowWidth: 800,
-                    windowHeight: 600
+                    width: 1200,
+                    height: 900,
+                    windowWidth: 1200,
+                    windowHeight: 900
                 });
-                const imgData = canvas.toDataURL('image/jpeg', 0.9);
+                const imgData = canvas.toDataURL('image/png');
                 if (i > 0) {
-                    pdf.addPage([800, 600], 'landscape');
+                    pdf.addPage([1200, 900], 'landscape');
                 }
-                pdf.addImage(imgData, 'JPEG', 0, 0, 800, 600);
+                pdf.addImage(imgData, 'PNG', 0, 0, 1200, 900);
             } catch (error) {
                 console.error(`PDFのページ${i}の描画に失敗しました:`, error);
             }
@@ -204,17 +204,17 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
         {/* Off-screen renderer for PDF generation */}
         {isGeneratingPdf && (
             <div id="pdf-render-container" className="absolute -left-[9999px] top-0" aria-hidden="true">
-                <div style={{width: 800, height: 600}} className="pdf-page bg-white flex flex-col justify-center items-center p-8 box-border">
+                <div style={{width: 1200, height: 900}} className="pdf-page bg-white flex flex-col justify-center items-center p-8 box-border">
                     <h2 className="text-5xl font-display text-center mb-6 shrink-0">{story.title}</h2>
                     <div className="w-full flex-grow flex items-center justify-center overflow-hidden">
                         <img src={story.coverImageUrl} alt={story.title} className="max-w-full max-h-full" style={{ objectFit: 'contain' }} />
                     </div>
                 </div>
                 {story.pages.map((page, index) => (
-                    <div key={`pdf-${page.id}`} style={{width: 800, height: 600}}>
+                    <div key={`pdf-${page.id}`} style={{width: 1200, height: 900}}>
                         <div className="w-full h-full flex flex-row pdf-page bg-white" data-page-num={index + 1}>
                              <div className="w-1/2 h-full bg-black flex items-center justify-center">
-                                <div style={{ width: '400px', height: '300px' }}>
+                                <div style={{ width: '600px', height: '450px' }}>
                                     <img 
                                         src={page.imageUrl} 
                                         alt=""
@@ -228,7 +228,7 @@ const BookViewer: React.FC<BookViewerProps> = ({ story, onRestart, onRegenerateP
                         </div>
                     </div>
                 ))}
-                <div style={{width: 800, height: 600}}>
+                <div style={{width: 1200, height: 900}}>
                     <PageContent isPdfPage={true} title="あとがき" text={story.afterword} imageUrl={story.pages[0].imageUrl} isAfterword={true}/>
                 </div>
             </div>

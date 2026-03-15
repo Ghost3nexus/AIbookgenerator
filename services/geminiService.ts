@@ -1,14 +1,29 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ArtStyle, Theme, Story, Page } from '../types';
 
-// Helper to get the API client, initialized with the key from localStorage
-function getGenAI() {
-    const apiKey = localStorage.getItem('GEMINI_API_KEY');
-    if (!apiKey) {
-        // This error will be caught by the calling function's try-catch block
-        throw new Error('Gemini APIキーが設定されていません。アプリを再読み込みして設定してください。');
+// Helper to get the API client
+// Priority: build-time env var > localStorage
+function getApiKey(): string {
+    // Build-time embedded key (set via Railway env var)
+    const envKey = typeof process !== 'undefined' && process.env?.GEMINI_API_KEY;
+    if (envKey) return envKey;
+    // Fallback to localStorage for development
+    const localKey = localStorage.getItem('GEMINI_API_KEY');
+    if (localKey) return localKey;
+    throw new Error('Gemini APIキーが設定されていません。');
+}
+
+export function hasApiKey(): boolean {
+    try {
+        getApiKey();
+        return true;
+    } catch {
+        return false;
     }
-    return new GoogleGenAI({ apiKey });
+}
+
+function getGenAI() {
+    return new GoogleGenAI({ apiKey: getApiKey() });
 }
 
 async function fileToBase64(file: File): Promise<string> {

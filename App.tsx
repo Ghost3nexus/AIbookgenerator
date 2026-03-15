@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Page, Story, ArtStyle, Theme } from './types';
-import { generateStoryAndImages, regeneratePage } from './services/geminiService';
+import { generateStoryAndImages, regeneratePage, hasApiKey } from './services/geminiService';
 import Header from './components/Header';
 import IdeaForm from './components/IdeaForm';
 import LoadingAnimation from './components/LoadingAnimation';
@@ -11,7 +11,8 @@ import { CloseIcon } from './components/Icons';
 type AppState = 'API_SETUP' | 'FORM' | 'LOADING' | 'PREVIEW';
 
 function getInitialState(): AppState {
-    if (typeof window !== 'undefined' && localStorage.getItem('GEMINI_API_KEY')) {
+    // Skip API setup if key is embedded at build time or in localStorage
+    if (hasApiKey()) {
         return 'FORM';
     }
     return 'API_SETUP';

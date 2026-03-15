@@ -16,9 +16,9 @@ const Header: React.FC<HeaderProps> = ({ onSettingsClick, showSettings }) => {
           </div>
           <div>
             <h1 className="text-3xl font-display tracking-wider text-indigo-600">
-              Story Weaver
+              AI絵本メーカー
             </h1>
-            <p className="text-sm text-indigo-800/70 -mt-1 font-medium">AI絵本ジェネレーター</p>
+            <p className="text-sm text-indigo-800/70 -mt-1 font-medium">丸山幼稚園</p>
           </div>
         </div>
         

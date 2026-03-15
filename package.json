@@ -1,17 +1,19 @@
 {
-  "name": "story-weaver:-ai-picture-book-generator",
+  "name": "maruyama-ai-bookmaker",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "serve dist -s -l tcp://0.0.0.0:${PORT:-3000}"
   },
   "dependencies": {
+    "@google/genai": "^1.22.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "@google/genai": "^1.22.0"
+    "serve": "^14.2.6"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
